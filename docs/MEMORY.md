@@ -1,20 +1,58 @@
 # Memory
 
-## What to remember
+The system needs both short-term working memory and persistent project memory. Both layers must be carefully bounded and must not retain sensitive credentials or unnecessary personal data.
 
-The agent's working memory should track:
+## Short-term memory
 
-- Discovered pages and their site-map relationships.
-- Visited states and current authentication state where relevant.
-- Actions performed and failed actions.
-- Completed strategies and coverage gaps per page.
-- Known bugs and their reproduction/evidence references.
-- Interesting states that may guide future tests.
+Short-term memory should track:
 
-## Use
+- current URL
+- current page state or state fingerprint
+- recent actions
+- recent observations
+- pending scenarios
+- current strategy
+- candidate bugs
+- active coverage gaps
 
-Memory helps avoid repeated exploration, resume useful work, select uncovered strategies, and connect findings to their originating pages and states. Keep the site map, coverage, and bug records consistent with the observations collected by the Browser Worker.
+This memory is used for the current session and is not the authoritative historical record.
 
-## Persistence
+## Persistent memory
 
-The initial design can use in-memory state. The attachment suggests SQLite or PostgreSQL as eventual persistence options but does not select one or define a storage schema. Persistence should be chosen when implementation requirements are known.
+Persistent memory should track:
+
+- site map
+- known states
+- historical bugs
+- regression tests
+- completed strategies
+- flaky behaviors
+- configuration metadata
+- artifacts and evidence references
+
+This memory is the durable knowledge base for future exploration and regression protection.
+
+## Required data hygiene
+
+The system must explicitly prohibit storing:
+
+- passwords
+- session tokens
+- API keys
+- payment credentials
+- unnecessary personal data
+- sensitive identifiers outside the project scope
+
+Any implementation should take a strict “only store what is needed for project operation” approach.
+
+## Memory rules
+
+- Keep the site map and coverage records aligned with evidence.
+- Do not let the AI model invent missing observations.
+- Record both successful and unsuccessful actions so that repeated failures do not look like active exploration.
+- Keep the memory model small, explicit, and reviewable.
+- Maintain a clear separation between short-lived session memory and durable project memory.
+
+## Persistence approach
+
+No persistence technology has been selected yet. The current project only requires the specification of what belongs in memory and what must never be stored.

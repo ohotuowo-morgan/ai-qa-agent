@@ -23,7 +23,6 @@ AI-guided autonomous QA agent that explores web apps with Playwright, detects fu
 ai-qa-agent/
 │
 ├── src/
-│   │
 │   ├── agent/
 │   │   ├── explorer.ts
 │   │   ├── planner.ts
@@ -51,7 +50,6 @@ ai-qa-agent/
 │   │   │   ├── responsive.ts
 │   │   │   ├── accessibility.ts
 │   │   │   └── errorHandling.ts
-│   │   │
 │   │   ├── assertions.ts
 │   │   └── oracle.ts
 │   │
@@ -73,6 +71,8 @@ ai-qa-agent/
 │   └── index.ts
 │
 ├── tests/
+│   ├── unit/
+│   ├── integration/
 │   ├── generated/
 │   └── regression/
 │
@@ -85,5 +85,14 @@ ai-qa-agent/
 ├── config/
 │   └── agent.config.ts
 │
-└── package.json
+├── package.json
+├── tsconfig.json
+├── playwright.config.ts
+│
+├── AGENTS.md
+├── PROJECT-CONTEXT.md
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+└── README.md
+
 ```

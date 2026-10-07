@@ -1,52 +1,124 @@
 # Agent Contract
 
-## Principle
+This document defines the conceptual action interface between the reasoning layer and the deterministic browser layer. It is a specification, not an implementation.
 
-The agent receives structured observations and proposes actions from a finite action space. It does not emit arbitrary JavaScript or directly manipulate Playwright throughout the codebase. Validate model output against a schema before execution.
+## Contract principle
 
-## Proposed actions
+The AI layer may propose only actions from a bounded, typed set. It may not directly manipulate browser internals or execute arbitrary JavaScript. The Browser Worker validates a proposed action and executes it in a deterministic environment.
+
+## Proposed action vocabulary
 
 ```ts
 type AgentAction =
   | { type: "navigate"; url: string }
   | { type: "click"; target: string }
   | { type: "fill"; target: string; value: string }
+  | { type: "select"; target: string; value: string }
   | { type: "press"; target: string; key: string }
   | { type: "scroll"; direction: "up" | "down" }
   | { type: "wait"; milliseconds: number }
   | { type: "inspect" }
+  | { type: "screenshot" }
   | { type: "finish" };
 ```
 
-This is the proposed initial action vocabulary. Validation constraints and selector/target resolution rules remain to be defined during implementation.
+This is the conceptual contract for the project. The system must validate target names, URLs, key names, and timing values before execution.
+
+## Allowed actions
+
+- navigate: open a configured URL or known internal path
+- click: trigger a known control or link by a stable selector or target ID
+- fill: populate a form field with a string value
+- select: choose a select option or list value
+- press: send keyboard input to a focused element
+- scroll: move the viewport up or down
+- wait: pause for a deterministic time period
+- inspect: capture the current DOM and page state snapshot
+- screenshot: capture a page state for evidence
+- finish: stop the current exploration loop when configured limits are reached or no useful action remains
+
+## Validation requirements
+
+Before execution, each action must satisfy:
+
+- a known type name,
+- valid field names for that action,
+- a non-empty target when the action requires one,
+- valid URL format for navigation,
+- bounded timings and values,
+- safety checks for target scope and configured domains.
+
+The action contract must reject anything outside the valid schema.
+
+## Safety restrictions
+
+- No arbitrary JavaScript execution.
+- No direct use of browser internals from the model layer.
+- No raw DOM mutation outside the deterministic Browser Worker.
+- No testing outside the configured domain or allowed site list.
+- No model actions that bypass the evidence-collection path.
+
+## Model output validation
+
+The model output must be validated before it reaches the executor. Validation includes:
+
+- schema validation,
+- target existence checks,
+- safety and domain boundary checks,
+- action budget checks,
+- and decision logging for later review.
+
+If validation fails, the action is rejected and the planner must propose a new action or stop.
+
+## Action budgets
+
+The agent must respect configured budgets, including:
+
+- maximum actions per session,
+- maximum pages visited,
+- maximum reproduction attempts,
+- maximum model calls,
+- maximum artifacts retained,
+- maximum session duration.
+
+Budget enforcement is part of the architecture, not an optional quality improvement.
+
+## Decision logging
+
+Each action proposal and execution should be logged with:
+
+- timestamp,
+- current URL,
+- current page state or fingerprint,
+- selected strategy,
+- proposed action,
+- validation result,
+- execution result,
+- evidence returned.
+
+This logging preserves traceability between planning and evidence.
 
 ## Browser Worker boundary
 
-The agent uses a controlled browser interface rather than scattered Playwright calls:
+The Browser Worker exposes a deterministic interface to the rest of the system, for example:
 
 ```ts
 interface BrowserWorker {
   goto(url: string): Promise<void>;
-  click(selector: string): Promise<ActionResult>;
-  fill(selector: string, value: string): Promise<ActionResult>;
-  press(selector: string, key: string): Promise<ActionResult>;
+  click(target: string): Promise<ActionResult>;
+  fill(target: string, value: string): Promise<ActionResult>;
+  select(target: string, value: string): Promise<ActionResult>;
+  press(target: string, key: string): Promise<ActionResult>;
   scroll(direction: "up" | "down"): Promise<ActionResult>;
+  wait(milliseconds: number): Promise<ActionResult>;
+  inspect(): Promise<InspectionResult>;
   screenshot(): Promise<string>;
-  inspectDOM(): Promise<DOMSnapshot>;
-  inspectNetwork(): Promise<NetworkEvent[]>;
-  inspectConsole(): Promise<ConsoleEvent[]>;
-  inspectAccessibility(): Promise<AccessibilitySnapshot>;
-  getCurrentURL(): Promise<string>;
-  getVisibleText(): Promise<string>;
+  finish(): Promise<void>;
 }
 ```
 
-The type names shown above describe the interface and are not defined further in the source material.
+This interface is conceptual and should be refined during implementation according to the actual needs of the project.
 
-## Observation contract
+## Non-negotiable rule
 
-Provide the planner with a useful summary of current state, such as URL, title, visible text, buttons, inputs, links, console errors, and network errors. Preserve access to the underlying evidence needed to verify any conclusion.
-
-## Planning contract
-
-The planner returns a validated next action or a finish decision, guided by test strategies and coverage gaps. The executor reports the outcome and evidence so the next planning step can use the updated state.
+The reasoning model must not replace the Browser Worker. It may recommend, interpret, and decide, but it may not bypass the typed action interface or directly control the browser outside the deterministic execution boundary.

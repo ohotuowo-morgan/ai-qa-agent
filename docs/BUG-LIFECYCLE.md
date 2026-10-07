@@ -1,41 +1,115 @@
 # Bug Lifecycle
 
-## 1. Observe
+The bug lifecycle separates suspicion from confirmation. The system should preserve evidence at each step and avoid reporting a bug without reproduction.
 
-A browser action produces an observation that may be suspicious. Capture the action, target, page state, and relevant DOM, screenshot, console, or network evidence.
+## State transitions
 
-## 2. Evaluate
+OBSERVED
+→ SUSPECTED
+→ REPRODUCING
+→ NOT_REPRODUCIBLE or CONFIRMED
+→ DEDUPLICATED
+→ REPORTED
+→ REGRESSION_CANDIDATE
+→ REGRESSION_TESTED
 
-Compare the observation with deterministic checks, application-specific expectations when available, and AI reasoning. The result at this stage is a suspected bug, not yet a confirmed report.
+## State definitions
 
-## 3. Reproduce
+### OBSERVED
 
-Reset or isolate the browser and replay the exact steps. Repeat the run independently; the proposal suggests three attempts and recording the reproducibility count (for example, 3/3). Distinguish consistent defects from intermittent or non-reproducible observations.
+A browser action produces a state change or output that is notable enough to investigate. This state requires evidence capture, including the action, page state, and any relevant browser output.
 
-## 4. Analyze and classify
+### SUSPECTED
 
-For a repeatable issue, record a concise title, category, reason, confidence, severity, and reproduction steps. Suggested categories are functional, UX, visual, accessibility, performance, operational, and security. Keep classifications constrained to defined values.
+The observation is inconsistent with expected behavior or with the application contract. At this point it is not yet confirmed as a defect. It may be classified as suspicious and placed into a review queue.
 
-## 5. Preserve evidence
+### REPRODUCING
 
-Associate each finding with an evidence package where available:
+The system replays the scenario in a fresh or isolated browser state to determine whether the issue recurs. This step is required before confirmation.
 
-- Before and after screenshots.
-- Playwright trace.
-- Console and network events.
-- Before and after DOM snapshots.
-- Structured reproduction steps.
+### NOT_REPRODUCIBLE
 
-The AI's conclusion should be traceable to this evidence.
+The issue does not recur under controlled conditions, or the evidence is insufficient to support a defect claim. The observation may be retained for investigation but must not be reported as a bug.
 
-## 6. Deduplicate
+### CONFIRMED
 
-Compare findings for shared causes, such as multiple pages failing through the same API endpoint. Preserve individual reproduction paths while grouping likely instances of a root issue.
+The issue recurs under controlled conditions and the evidence supports a real defect. The finding must include a reproduction path and a structured evidence package.
 
-## 7. Report and protect
+### DEDUPLICATED
 
-Store confirmed findings in the bug database and include their evidence. After human confirmation, generate a regression test where suitable so future scans can detect recurrence.
+The bug is grouped with a related issue that shares cause or reproduction behavior. The deduplicated record retains the original evidence and reproduction steps while grouping similar findings.
 
-## Lifecycle states
+### REPORTED
 
-The architecture implies these working states: observed, suspected, reproducing, confirmed, non-reproducible, deduplicated/grouped, and regression-covered. Exact status names and transitions are implementation choices.
+The bug is stored with a structured report and the evidence package. It is ready for human review or implementation tracking.
+
+### REGRESSION_CANDIDATE
+
+A confirmed defect is converted into a deterministic, repeatable regression test candidate. The test should reproduce the original defect without requiring the model.
+
+### REGRESSION_TESTED
+
+The regression candidate was executed successfully and the issue is protected by deterministic test coverage.
+
+## Evidence requirements for confirmed bugs
+
+Each confirmed bug should contain:
+
+- title
+- page URL and relevant route
+- state or context description
+- action sequence
+- expected outcome
+- observed outcome
+- oracle result
+- reproduction count
+- timestamp
+- evidence references
+- severity and confidence
+- bug category
+
+## Suggested bug fields
+
+- id
+- title
+- status
+- category
+- severity
+- confidence
+- targetUrl
+- pageState
+- route
+- expectedBehavior
+- observedBehavior
+- reproductionSteps
+- evidenceRefs
+- relatedFindings
+- createdAt
+- updatedAt
+
+## Machine-readable schema
+
+```json
+{
+  "id": "string",
+  "title": "string",
+  "status": "OBSERVED|SUSPECTED|REPRODUCING|CONFIRMED|NOT_REPRODUCIBLE|DEDUPLICATED|REPORTED|REGRESSION_CANDIDATE|REGRESSION_TESTED",
+  "category": "functional|validation|state|ux|visual|accessibility|operational|security",
+  "severity": "info|minor|major|critical",
+  "confidence": "low|medium|high",
+  "targetUrl": "string",
+  "pageState": "string",
+  "route": "string",
+  "expectedBehavior": "string",
+  "observedBehavior": "string",
+  "reproductionSteps": ["string"],
+  "evidenceRefs": ["string"],
+  "relatedFindings": ["string"],
+  "createdAt": "ISO-8601 timestamp",
+  "updatedAt": "ISO-8601 timestamp"
+}
+```
+
+## Non-negotiable rule
+
+A bug is not confirmed solely because the model thinks it is likely. A finding becomes confirmed only after it is reproducible and supported by evidence.

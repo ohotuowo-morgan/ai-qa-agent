@@ -1,37 +1,63 @@
 # Oracle
 
-## Purpose
+The oracle is the decision layer that determines whether behavior is acceptable or defective. It must use explicit, testable expectations rather than guesswork.
 
-The oracle decides whether observed behavior violates an expectation. Observing what a website did is not enough; the system needs a defensible basis for deciding whether it was correct.
+## Decision priority
 
-## Evidence sources
+The oracle should use this priority order:
 
-Combine three kinds of expectations:
+1. explicit product requirement
+2. deterministic test or assertion
+3. application contract
+4. browser or platform invariant
+5. observable state transition
+6. AI reasoning
 
-1. **Deterministic rules:** For example, assert that a response status is below 400.
-2. **Application-specific expectations:** For example, after valid login data, expect navigation to a dashboard.
-3. **AI reasoning:** Assess whether the observed interaction appears inconsistent with the user's apparent goal, given the page and available evidence.
+This ordering prevents model confidence from outranking objective evidence.
 
-## Evaluation pattern
+## Outcome definitions
 
-For each scenario, record:
+### PASS
 
-- The action and target.
-- The expected outcome and the source of that expectation.
-- The observed outcome.
-- Relevant page, DOM, screenshot, console, and network evidence.
-- The oracle's conclusion and confidence.
+The observed behavior aligns with the relevant requirement or deterministic expectation.
 
-Example: after valid form input and selecting Continue, the page neither advances nor displays feedback. This is suspicious because neither expected outcome occurred; the detector should cite the observation and the expectation rather than asserting a bug from silence alone.
+### FAIL
 
-## Avoiding false positives
+The observed behavior violates a relevant requirement, deterministic assertion, or contract. This outcome must be tied to evidence and should not be based on model intuition alone.
 
-- Separate a suspicious observation from a confirmed bug.
-- Treat network and console errors as signals that require context.
-- Prefer explicit application expectations where they exist.
-- Require independent reproduction before confirming a finding.
-- Report observable usability impact instead of subjective design opinions.
+### SUSPICIOUS
 
-## Limits
+An observation may be wrong, but the evidence is insufficient to call it a confirmed failure. The system should record the reason for suspicion and decide whether reproduction is warranted.
 
-The attachment does not specify a universal oracle for every application. Product-specific rules and valid test data must be provided or inferred with explicit uncertainty; the agent should not present an unsupported expectation as fact.
+### UNKNOWN
+
+The system does not have enough evidence or a relevant expectation to determine whether the outcome is correct. UNKNOWN is not a proof of failure, and it must not automatically become FAIL.
+
+## Oracle rules
+
+- The strongest source of truth is an explicit requirement or deterministic assertion.
+- Observed behavior without a related expectation should be treated as suspicious, not failing.
+- Console errors, dead pages, or failed requests are signals to investigate, not proof of a defect.
+- AI reasoning can help interpret context, but it does not replace a product requirement or deterministic check.
+- An observation must be reproducible before it is treated as a confirmed defect.
+
+## Evidence to record
+
+For each scenario, capture:
+
+- action taken
+- target or page context
+- expected outcome
+- source of expectation
+- observed outcome
+- relevant DOM, screenshot, console, network, trace, and state evidence
+- oracle conclusion
+- confidence or uncertainty level
+
+## Important caution
+
+AI confidence is not proof. The model can suggest what seems wrong, but that suggestion is only a candidate signal until it is validated by deterministic evidence and by independent reproduction.
+
+## System-level interpretation
+
+The oracle is the boundary between a suspicious observation and a confirmed defect. In other words, the system must not move from “something seems odd” to “we found a bug” without evidence and reproduction.
